@@ -1,0 +1,9 @@
+streamlit
+pandas
+psycopg2-binary
+python-dateutil
+plotly.express
+statsmodels.api
+hashlib
+os 
+configparser
