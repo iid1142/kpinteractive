@@ -25,7 +25,7 @@ from typing import List, Tuple
 # Load configuration from config.ini
 config = configparser.ConfigParser()
 config.read('config.ini')
-
+print(f"Config object: {config.sections()}")
 # Database connection parameters from config
 DB_HOST = os.environ.get('DB_HOST', config['database']['host'])
 DB_PORT = os.environ.get('DB_PORT', config['database']['port'])
