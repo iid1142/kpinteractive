@@ -1,0 +1,35 @@
+# Python-specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+dist/
+build/
+venv/
+env/
+.venv/
+.env/
+
+# Data and configuration
+config.ini
+*.csv  # If you have any CSV files that shouldn't be tracked
+*.db   # If you have any local database files
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Streamlit-specific
+.streamlit/secrets.toml  # If you use Streamlit secrets
+
+# Temporary files
+*.log
+*.tmp
+
+# IDE-specific
+.idea/
+.vscode/
+
+# Other
+/data/  # Or whatever directory you use for large datasets
