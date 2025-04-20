@@ -109,11 +109,11 @@ def get_db_connection():
     """
     try:
         conn = psycopg2.connect(  # Check to see if connection parameters are correct
-            host=DB_HOST,
-            port=DB_PORT,
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
+            host=st.secrets["DB_HOST"],
+            database=st.secrets["DB_NAME"],
+            user=st.secrets["DB_USER"],
+            password=st.secrets["DB_PASSWORD"],
+            port=st.secrets["DB_PORT"],
         )
         return conn
     except psycopg2.Error as e:  # If not correct, say error
