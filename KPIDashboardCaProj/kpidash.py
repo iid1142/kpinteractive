@@ -22,93 +22,111 @@ from typing import List, Tuple
 
 # --- Configuration ---
 
-# Load configuration from config.ini
-config = configparser.ConfigParser()
-config.read('KPIDashboardCaProj/config.ini')
-print(f"Config object: {config.sections()}")
-# Database connection parameters from config
-DB_HOST = os.environ.get('DB_HOST', config['database']['host'])
-DB_PORT = os.environ.get('DB_PORT', config['database']['port'])
-DB_NAME = os.environ.get('DB_NAME', config['database']['dbname'])
-DB_USER = os.environ.get('DB_USER', config['database']['user'])
-DB_PASSWORD = os.environ.get('DB_PASSWORD', config['database']['password'])
+import streamlit.components.v1 as components
 
-# Table and column names from config
-TABLE_NAME = config['table']['name']
-ORDER_DATE_COL = config['columns']['order_date']
-PRODUCT_LINE_COL = config['columns']['product_line']
-SALES_COL = config['columns']['sales']
-ORDER_NUMBER_COL = config['columns']['order_number']
-CUSTOMER_NAME_COL = config['columns']['customer_name']
-TERRITORY_COL = config['columns']['territory']
-COUNTRY_COL = config['columns']['country']
-STATE_COL = config['columns']['state']
-CITY_COL = config['columns']['city']
-STATUS_COL = config['columns']['status']
-DEAL_SIZE_COL = config['columns']['deal_size']
-PRODUCT_CODE_COL = config['columns']['product_code']
-QUANTITY_ORDERED_COL = config['columns']['quantity_ordered']
-PRICE_EACH_COL = config['columns']['price_each']
-MSRP_COL = config['columns']['msrp']
-ORDER_LINE_NUMBER_COL = config['columns']['order_line_number']  # [cite: 1, 2]
+# --- Load Configuration ---
+config = configparser.ConfigParser()
+if not st.secrets:  # Check if Streamlit Secrets is empty (likely running locally)
+    config.read('KPIDashboardCaProj/config.ini')
+    print(f"Config object (local): {config.sections()}")
+    # Database connection parameters from config (for local development)
+    DB_HOST = os.environ.get('DB_HOST', config['database']['host'])
+    DB_PORT = os.environ.get('DB_PORT', config['database']['port'])
+    DB_NAME = os.environ.get('DB_NAME', config['database']['dbname'])
+    DB_USER = os.environ.get('DB_USER', config['database']['user'])
+    DB_PASSWORD = os.environ.get('DB_PASSWORD', config['database']['password'])
+
+    # Table and column names from config (for local development)
+    TABLE_NAME = config['table']['name']
+    ORDER_DATE_COL = config['columns']['order_date']
+    PRODUCT_LINE_COL = config['columns']['product_line']
+    SALES_COL = config['columns']['sales']
+    ORDER_NUMBER_COL = config['columns']['order_number']
+    CUSTOMER_NAME_COL = config['columns']['customer_name']
+    TERRITORY_COL = config['columns']['territory']
+    COUNTRY_COL = config['columns']['country']
+    STATE_COL = config['columns']['state']
+    CITY_COL = config['columns']['city']
+    STATUS_COL = config['columns']['status']
+    DEAL_SIZE_COL = config['columns']['deal_size']
+    PRODUCT_CODE_COL = config['columns']['product_code']
+    QUANTITY_ORDERED_COL = config['columns']['quantity_ordered']
+    PRICE_EACH_COL = config['columns']['price_each']
+    MSRP_COL = config['columns']['msrp']
+    ORDER_LINE_NUMBER_COL = config['columns']['order_line_number']
+else:
+    print("Running in Streamlit Cloud - using secrets.")
+    # Database connection parameters from Streamlit Secrets
+    DB_HOST = st.secrets["DB_HOST"]
+    DB_PORT = st.secrets["DB_PORT"]
+    DB_NAME = st.secrets["DB_NAME"]
+    DB_USER = st.secrets["DB_USER"]
+    DB_PASSWORD = st.secrets["DB_PASSWORD"]
+
+    # You can also store table and column names in Streamlit Secrets if you prefer
+    # For simplicity, I'll keep them here in the code, but consider moving
+    # them to secrets if they are sensitive or environment-specific.
+    TABLE_NAME = "statable" 
+    ORDER_DATE_COL = "orderdate"
+    PRODUCT_LINE_COL = "productline"
+    SALES_COL = "sales"
+    ORDER_NUMBER_COL = "ordernumber"
+    CUSTOMER_NAME_COL = "customername"
+    TERRITORY_COL = "territory"
+    COUNTRY_COL = "country"
+    STATE_COL = "state"
+    CITY_COL = "city"
+    STATUS_COL = "status"
+    DEAL_SIZE_COL = "dealsize"
+    PRODUCT_CODE_COL = "productcode"
+    QUANTITY_ORDERED_COL = "quantityordered"
+    PRICE_EACH_COL = "priceeach"
+    MSRP_COL = "msrp"
+    ORDER_LINE_NUMBER_COL = "orderlinenumber"
 
 # --- User Authentication ---
-
-# User authentication and roles
+# (Keep your authentication code as is)
 USERS = {
     "admin": {"password": hashlib.sha256("s4l3s".encode()).hexdigest(), "role": "admin"}
-}  # [cite: 2]
+}
 
 def check_password(username, password):
-    """
-    Checks if the provided password matches the stored hash for the given user.
-
-    Args:
-        username (str): The username to check.
-        password (str): The password to verify.
-
-    Returns:
-        bool: True if the password is correct, False otherwise.
-    """
     user = USERS.get(username)
-    if user:  # If user exists
-        hashed_password = hashlib.sha256(password.encode()).hexdigest()  # Hexadecimal string representing the SHA-256 hash of the password
-        return user["password"] == hashed_password  # Check if password matches
-    return False  # If user doesn't exist, return False
+    if user:
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        return user["password"] == hashed_password
+    return False
 
 def authenticate():
-    """
-    Handles user authentication via a login form.  Uses Streamlit's session state
-    to persist authentication status.
-    """
-    if 'authenticated' not in st.session_state:  # If not authenticated
-        st.session_state.authenticated = False  # Not authenticated
-        st.session_state.user_role = None  # No role
+    if 'authenticated' not in st.session_state:
+        st.session_state.authenticated = False
+        st.session_state.user_role = None
 
-    if not st.session_state.authenticated:  # If not authenticated, create the login website
-        username = st.text_input("Username")  # Create Username space
-        password = st.text_input("Password", type="password")  # Create Password space
-        if st.button("Login"):  # If Login is pressed
-            if check_password(username, password):  # Check password if it matches; if True... [cite: 2, 3, 4]
-                st.session_state.authenticated = True  # Authenticated
-                st.session_state.user_role = USERS[username]["role"]  # Role established
-                st.success("Logged in!")  # Logged in!
-                st.button("Go to Dashboard!")  # Creates a button saying "Go to Dashboard!" [cite: 5]
+    if not st.session_state.authenticated:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if check_password(username, password):
+                st.session_state.authenticated = True
+                st.session_state.user_role = USERS[username]["role"]
+                st.success("Logged in!")
+                st.button("Go to Dashboard!")
             else:
-                st.error("Incorrect username or password")  # Incorrect username or password
-        st.stop()  # Stop execution if not authenticated
+                st.error("Incorrect username or password")
+        st.stop()
 
 # --- Database Connection ---
 
+@st.cache_resource
 def get_db_connection():
     """
-    Connects to the PostgreSQL database using parameters from the configuration.
+    Connects to the PostgreSQL database using parameters from Streamlit Secrets.
 
     Returns:
         psycopg2.connection: A connection object, or None if the connection fails.
     """
     try:
-        conn = psycopg2.connect(  # Check to see if connection parameters are correct
+        conn = psycopg2.connect(
             host=st.secrets["DB_HOST"],
             database=st.secrets["DB_NAME"],
             user=st.secrets["DB_USER"],
@@ -116,9 +134,9 @@ def get_db_connection():
             port=st.secrets["DB_PORT"],
         )
         return conn
-    except psycopg2.Error as e:  # If not correct, say error
+    except psycopg2.Error as e:
         st.error(f"Error connecting to the database: {e}")
-        return None  # If nothing, say None [cite: 6, 7]
+        return None
 
 # --- Data Loading ---
 
